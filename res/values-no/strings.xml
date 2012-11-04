@@ -1,0 +1,12 @@
+<resources>
+
+    <string name="app_name">Dagensmiddag</string>
+    <string name="frederikke">Frederikke Kafé</string>
+    <string name="ifi">Informatikkkafeen</string>
+    <string name="kafe_ole">Kafé Ole</string>
+    <string name="sv_kafeen">SV-Kafeen</string>
+    <string name="menu_update">Oppdater</string>
+    <string name="menu_today">Vis kun dagens</string>
+    <string name="title_activity_restaurant">Hvor vil du spise?</string>
+
+</resources>
