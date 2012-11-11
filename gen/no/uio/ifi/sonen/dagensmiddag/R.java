@@ -15,13 +15,14 @@ public final class R {
         public static final int ic_launcher=0x7f020001;
     }
     public static final class id {
+        public static final int layout_food=0x7f070001;
+        public static final int loading_food=0x7f070000;
         public static final int menu_today=0x7f070003;
         public static final int menu_update=0x7f070002;
-        public static final int pager=0x7f070000;
-        public static final int pager_title_strip=0x7f070001;
     }
     public static final class layout {
-        public static final int activity_restaurant=0x7f030000;
+        public static final int activity_loading_dinner=0x7f030000;
+        public static final int activity_restaurant=0x7f030001;
     }
     public static final class menu {
         public static final int activity_restaurant=0x7f060000;

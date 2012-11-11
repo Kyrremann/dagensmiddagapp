@@ -1,64 +1,56 @@
 package no.uio.ifi.sonen.dagensmiddag;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Calendar;
+import java.util.Iterator;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.R.anim;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.Preference;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ContextMenu.ContextMenuInfo;
+import android.widget.HorizontalScrollView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class RestaurantActivity extends FragmentActivity {
 
-	/**
-	 * The {@link android.support.v4.view.PagerAdapter} that will provide
-	 * fragments for each of the sections. We use a
-	 * {@link android.support.v4.app.FragmentPagerAdapter} derivative, which
-	 * will keep every loaded fragment in memory. If this becomes too memory
-	 * intensive, it may be best to switch to a
-	 * {@link android.support.v4.app.FragmentStatePagerAdapter}.
-	 */
-	SectionsPagerAdapter mSectionsPagerAdapter;
-
-	/**
-	 * The {@link ViewPager} that will host the section contents.
-	 */
-	private ViewPager mViewPager;
-	private Context context;
 	private JSONObject dinner;
+	private static InputStream inputStream;
+	private static String fileName = "dinners.json";
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_restaurant);
-		this.context = this;
+		// setContentView(R.layout.activity_restaurant);
+		setContentView(R.layout.activity_loading_dinner);
+
 		getMeSomeDinner();
-		// Create the adapter that will return a fragment for each of the four
-		// primary sections
-		// of the app.
-		mSectionsPagerAdapter = new SectionsPagerAdapter(
-				getSupportFragmentManager());
-
-		// Set up the ViewPager with the sections adapter.
-		mViewPager = (ViewPager) findViewById(R.id.pager);
-		mViewPager.setAdapter(mSectionsPagerAdapter);
-
 	}
 
 	@Override
@@ -69,9 +61,18 @@ public class RestaurantActivity extends FragmentActivity {
 
 	@Override
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
-
 		switch (item.getItemId()) {
 		case R.id.menu_today:
+			SharedPreferences settings = getSharedPreferences(
+					getString(R.string.app_name), MODE_PRIVATE);
+			SharedPreferences.Editor editor = settings.edit();
+			if (item.isChecked()) {
+				item.setChecked(false);
+				editor.putBoolean("today", false);
+			} else {
+				item.setChecked(true);
+				editor.putBoolean("today", true);
+			}
 			break;
 		case R.id.menu_update:
 			getMeSomeDinner();
@@ -81,14 +82,90 @@ public class RestaurantActivity extends FragmentActivity {
 		return true;
 	}
 
+	private void populateFood(int ifi) {
+		if (findViewById(R.id.layout_food) == null)
+			setContentView(R.layout.activity_restaurant);
+		
+		LinearLayout layout = (LinearLayout) findViewById(R.id.layout_food);
+		JSONArray menu;
+		try {
+			setTitle("Uke: " + dinner.getString("week"));
+			JSONArray cafes = dinner.getJSONArray("cafes");
+			TextView textView = new TextView(this);
+			textView.setText(cafes.getJSONObject(0).getString("name"));
+			layout.addView(textView);
+			
+			textView = new TextView(this);
+			textView.setText(cafes.getJSONObject(0).getJSONArray("open").getString(getWeekday()));
+			layout.addView(textView);
+			
+			textView = new TextView(this);
+			textView.setText(cafes.getJSONObject(0).getJSONArray("menu").getString(getWeekday()));
+			layout.addView(textView);
+			
+//			if (menu != null) {
+//				((TextView) rootView.findViewById(R.id.dinner_week))
+//						.setText("Week: " + args.getString("week"));
+//				TextView textView = new TextView(getActivity());
+//				textView.setTextAppearance(getActivity(),
+//						android.R.attr.textAppearanceLarge);
+//				String food = "";
+//				SharedPreferences settings = getSharedPreferences(
+//						getString(R.string.app_name), MODE_PRIVATE);
+//				JSONObject today;
+//				Iterator keys;
+//				if (settings.getBoolean("today", false)) {
+//					System.out.println("true");
+//					for (int day = 0; day < menu.length(); day++) {
+//						today = (JSONObject) menu.get(day);
+//						keys = today.keys();
+//						while (keys.hasNext()) {
+//							String key = (String) keys.next();
+//							food += key + "\n\t";
+//							for (int i = 0; i < today.getJSONArray(key)
+//									.length(); i++)
+//								food += today.getJSONArray(key).get(i) + "\n";
+//						}
+//					}
+//				} else {
+//					System.out.println("false");
+//					today = (JSONObject) menu.get(getWeekday());
+//					keys = today.keys();
+//					System.out.println(today);
+//					while (keys.hasNext()) {
+//						String key = (String) keys.next();
+//						food += key + "\n\t";
+//						for (int i = 0; i < today.getJSONArray(key).length(); i++)
+//							food += today.getJSONArray(key).get(i) + "\n";
+//					}
+//				}
+//
+//				textView.setText(food);
+//				rootView.addView(textView);
+//			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	private int getWeekday() {
+		int weekday = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1;
+		if (weekday == 0)
+			return 6;
+		else
+			return weekday;
+	}
+
 	private void getMeSomeDinner() {
 		new Thread(new Runnable() {
 
 			@Override
 			public void run() {
 				try {
-					dinner = JsonParser.getMeSomeJson(context);
+					dinner = getMeSomeJson();
 					Log.d("JSON", "Returned with JSON file");
+					populateFood(R.string.ifi);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -96,106 +173,41 @@ public class RestaurantActivity extends FragmentActivity {
 		}).start();
 	}
 
-	/**
-	 * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
-	 * one of the primary sections of the app.
-	 */
-	public class SectionsPagerAdapter extends FragmentPagerAdapter {
+	private JSONObject getMeSomeJson() throws IOException {
 
-		public SectionsPagerAdapter(FragmentManager fm) {
-			super(fm);
+		byte[] buffer = "No data".getBytes();
+		try {
+			inputStream = openFileInput(fileName);
+			Log.d("JSON", "Already have file: " + inputStream);
+			buffer = new byte[inputStream.available()];
+			inputStream.read(buffer);
+		} catch (FileNotFoundException e1) {
+			Log.d("JSON", "No file on phone, dowloading...");
+			URL url = new URL("http://www.dagensmiddag.net/index.json");
+			URLConnection urlConnection = url.openConnection();
+			urlConnection.setConnectTimeout(1000);
+			inputStream = urlConnection.getInputStream();
+			Log.d("JSON", "Got file: " + inputStream);
+			FileOutputStream fileOutputStream = openFileOutput(fileName,
+					Context.MODE_PRIVATE);
+			buffer = new byte[inputStream.available()];
+			inputStream.read(buffer);
+			fileOutputStream.write(buffer);
+			Log.d("JSON", "Saved file to " + fileOutputStream);
+			fileOutputStream.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
-		@Override
-		public Fragment getItem(int index) {
-			Fragment fragment = new DinnerSectionFragment();
-			Bundle args = new Bundle();
-			args.putInt(DinnerSectionFragment.ARG_SECTION_NUMBER, index + 1);
-			try {
-				args.putString("week", dinner.getString("week"));
-				JSONArray cafes = dinner.getJSONArray("cafes");
-				if (getString(R.string.frederikke).equalsIgnoreCase(
-							getPageTitle(index).toString())) {
-						args.putString("menu",
-								((JSONObject) cafes.get(index)).toString());
-					} else if (getString(R.string.sv_kafeen).equalsIgnoreCase(
-							getPageTitle(index).toString())) {
-						args.putString("menu",
-								((JSONObject) cafes.get(index)).toString());
-					} else if (getString(R.string.ifi).equalsIgnoreCase(
-							getPageTitle(index).toString())) {
-						args.putString("menu",
-								((JSONObject) cafes.get(index)).toString());
-					} else if (getString(R.string.kafe_ole).equalsIgnoreCase(
-							getPageTitle(index).toString())) {
-						args.putString("menu",
-								((JSONObject) cafes.get(index)).toString());
-					}
+		inputStream.close();
 
-			} catch (JSONException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			fragment.setArguments(args);
-			return fragment;
-		}
-
-		@Override
-		public int getCount() {
-			return 4;
-		}
-
-		@Override
-		public CharSequence getPageTitle(int position) {
-			switch (position) {
-			case 0:
-				return getString(R.string.frederikke).toUpperCase();
-			case 1:
-				return getString(R.string.ifi).toUpperCase();
-			case 2:
-				return getString(R.string.kafe_ole).toUpperCase();
-			case 3:
-				return getString(R.string.sv_kafeen).toUpperCase();
-			}
+		try {
+			return new JSONObject(new String(buffer));
+		} catch (JSONException e) {
+			e.printStackTrace();
 			return null;
 		}
 	}
-
-	/**
-	 * A dummy fragment representing a section of the app, but that simply
-	 * displays dummy text.
-	 */
-	public class DinnerSectionFragment extends Fragment {
-		public DinnerSectionFragment() {
-		}
-
-		public static final String ARG_SECTION_NUMBER = "section_number";
-
-		@Override
-		public View onCreateView(LayoutInflater inflater, ViewGroup container,
-				Bundle savedInstanceState) {
-			TextView textView = new TextView(getActivity());
-			textView.setGravity(Gravity.CENTER);
-			Bundle args = getArguments();
-			JSONArray menu;
-			try {
-				menu = new JSONObject(args.getString("menu"))
-						.getJSONArray("menu");
-				// TODO: Make it pretty, and add all days
-				textView.setText("Week: " + args.getString("week")
-						+ "\nDinner: " + menu.get(getWeekday()));
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-			return textView;
-		}
-		
-		private int getWeekday() {
-			int weekday = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1;
-			if (weekday == 0)
-				return 6;
-			else
-				return weekday;
-		}
-	}
+	
 }
