@@ -40,16 +40,18 @@ import android.widget.TextView;
 
 public class RestaurantActivity extends FragmentActivity {
 
-	private JSONObject dinner;
 	private static InputStream inputStream;
 	private static String fileName = "dinners.json";
+
+	private SharedPreferences settings;
+	private JSONObject dinner;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		// setContentView(R.layout.activity_restaurant);
 		setContentView(R.layout.activity_loading_dinner);
-
+		settings = getSharedPreferences(getString(R.string.app_name),
+				MODE_PRIVATE);
 		getMeSomeDinner();
 	}
 
@@ -61,10 +63,21 @@ public class RestaurantActivity extends FragmentActivity {
 
 	@Override
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
-		switch (item.getItemId()) {
+		int id = item.getItemId();
+		switch (id) {
+		case R.id.cafe_frederikke:
+			populateFood(R.string.frederikke);
+			break;
+		case R.id.cafe_ifi:
+			populateFood(R.string.ifi);
+			break;
+		case R.id.cafe_ole:
+			populateFood(R.string.kafe_ole);
+			break;
+		case R.id.cafe_sv:
+			populateFood(R.string.sv_kafeen);
+			break;
 		case R.id.menu_today:
-			SharedPreferences settings = getSharedPreferences(
-					getString(R.string.app_name), MODE_PRIVATE);
 			SharedPreferences.Editor editor = settings.edit();
 			if (item.isChecked()) {
 				item.setChecked(false);
@@ -73,6 +86,7 @@ public class RestaurantActivity extends FragmentActivity {
 				item.setChecked(true);
 				editor.putBoolean("today", true);
 			}
+			editor.commit();
 			break;
 		case R.id.menu_update:
 			getMeSomeDinner();
@@ -82,77 +96,75 @@ public class RestaurantActivity extends FragmentActivity {
 		return true;
 	}
 
-	private void populateFood(int ifi) {
-		if (findViewById(R.id.layout_food) == null)
-			setContentView(R.layout.activity_restaurant);
-		
-		LinearLayout layout = (LinearLayout) findViewById(R.id.layout_food);
-		JSONArray menu;
+	private void populateFood(int id) {
+		Log.d("FOOD", "Getting food from " + getString(id));
+		setContentView(R.layout.activity_restaurant);
+
+		JSONObject cafe;
+
 		try {
-			setTitle("Uke: " + dinner.getString("week"));
-			JSONArray cafes = dinner.getJSONArray("cafes");
-			TextView textView = new TextView(this);
-			textView.setText(cafes.getJSONObject(0).getString("name"));
-			layout.addView(textView);
-			
-			textView = new TextView(this);
-			textView.setText(cafes.getJSONObject(0).getJSONArray("open").getString(getWeekday()));
-			layout.addView(textView);
-			
-			textView = new TextView(this);
-			textView.setText(cafes.getJSONObject(0).getJSONArray("menu").getString(getWeekday()));
-			layout.addView(textView);
-			
-//			if (menu != null) {
-//				((TextView) rootView.findViewById(R.id.dinner_week))
-//						.setText("Week: " + args.getString("week"));
-//				TextView textView = new TextView(getActivity());
-//				textView.setTextAppearance(getActivity(),
-//						android.R.attr.textAppearanceLarge);
-//				String food = "";
-//				SharedPreferences settings = getSharedPreferences(
-//						getString(R.string.app_name), MODE_PRIVATE);
-//				JSONObject today;
-//				Iterator keys;
-//				if (settings.getBoolean("today", false)) {
-//					System.out.println("true");
-//					for (int day = 0; day < menu.length(); day++) {
-//						today = (JSONObject) menu.get(day);
-//						keys = today.keys();
-//						while (keys.hasNext()) {
-//							String key = (String) keys.next();
-//							food += key + "\n\t";
-//							for (int i = 0; i < today.getJSONArray(key)
-//									.length(); i++)
-//								food += today.getJSONArray(key).get(i) + "\n";
-//						}
-//					}
-//				} else {
-//					System.out.println("false");
-//					today = (JSONObject) menu.get(getWeekday());
-//					keys = today.keys();
-//					System.out.println(today);
-//					while (keys.hasNext()) {
-//						String key = (String) keys.next();
-//						food += key + "\n\t";
-//						for (int i = 0; i < today.getJSONArray(key).length(); i++)
-//							food += today.getJSONArray(key).get(i) + "\n";
-//					}
-//				}
-//
-//				textView.setText(food);
-//				rootView.addView(textView);
-//			}
+			cafe = getCorrectCafe(id);
+			setTitle(cafe.getString("name"));
+			TextView textView = (TextView) findViewById(R.id.dinner_hours);
+			if (settings.getBoolean("today", true)) {
+				textView.setText(cafe.getJSONArray("open").getString(
+						getWeekday()));
+			} else {
+				String hours = "";
+				JSONArray array = cafe.getJSONArray("open");
+				for (int i = 0; i < array.length(); i++) {
+					hours += array.getString(i) + "\n";
+				}
+				textView.setText(hours);
+			}
+
+			textView = (TextView) findViewById(R.id.dinner_food);
+			if (settings.getBoolean("today", true))
+				textView.setText(parseFood(cafe.getJSONArray("menu")
+						.getJSONObject(getWeekday())));
+			else {
+				textView.setText(cafe.getJSONArray("menu").toString());
+			}
+
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
+	}
 
+	private String parseFood(JSONObject jsonObject) {
+		String food = "";
+		try {
+			Iterator<String> keys = jsonObject.keys();
+			while (keys.hasNext()) {
+				String key = keys.next();
+				JSONArray array = jsonObject.getJSONArray(key);
+				food += key + ":\n\t";
+				for (int i = 0; i < array.length(); i++)
+					food += array.getString(i) + "\n";
+			}
+
+		} catch (JSONException e) {
+			food = "No soup for you!";
+			e.printStackTrace();
+		}
+		return food;
+	}
+
+	private JSONObject getCorrectCafe(int resId) throws JSONException {
+		JSONArray cafes = dinner.getJSONArray("cafes");
+		String name = getString(resId);
+		for (int i = 0; i < cafes.length(); i++) {
+			if (cafes.getJSONObject(i).getString("name").equals(name))
+				return cafes.getJSONObject(i);
+		}
+
+		return null;
 	}
 
 	private int getWeekday() {
 		int weekday = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1;
 		if (weekday == 0)
-			return 6;
+			return 1;
 		else
 			return weekday;
 	}
@@ -196,7 +208,6 @@ public class RestaurantActivity extends FragmentActivity {
 			Log.d("JSON", "Saved file to " + fileOutputStream);
 			fileOutputStream.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -209,5 +220,5 @@ public class RestaurantActivity extends FragmentActivity {
 			return null;
 		}
 	}
-	
+
 }

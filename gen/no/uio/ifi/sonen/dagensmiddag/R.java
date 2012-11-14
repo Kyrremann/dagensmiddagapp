@@ -15,10 +15,18 @@ public final class R {
         public static final int ic_launcher=0x7f020001;
     }
     public static final class id {
-        public static final int layout_food=0x7f070001;
+        public static final int cafe_frederikke=0x7f070006;
+        public static final int cafe_ifi=0x7f070007;
+        public static final int cafe_ole=0x7f070008;
+        public static final int cafe_sv=0x7f070009;
+        public static final int dinner_food=0x7f070005;
+        public static final int dinner_hours=0x7f070002;
         public static final int loading_food=0x7f070000;
-        public static final int menu_today=0x7f070003;
-        public static final int menu_update=0x7f070002;
+        public static final int menu_today=0x7f07000b;
+        public static final int menu_update=0x7f07000a;
+        public static final int scrollView1=0x7f070004;
+        public static final int textView1=0x7f070001;
+        public static final int textView2=0x7f070003;
     }
     public static final class layout {
         public static final int activity_loading_dinner=0x7f030000;

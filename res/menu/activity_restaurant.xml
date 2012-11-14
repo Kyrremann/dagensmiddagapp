@@ -1,5 +1,24 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
 
+    <group >
+        <item
+            android:id="@+id/cafe_frederikke"
+            android:showAsAction="never"
+            android:title="@string/frederikke"/>
+        <item
+            android:id="@+id/cafe_ifi"
+            android:showAsAction="never"
+            android:title="@string/ifi"/>
+        <item
+            android:id="@+id/cafe_ole"
+            android:showAsAction="never"
+            android:title="@string/kafe_ole"/>
+        <item
+            android:id="@+id/cafe_sv"
+            android:showAsAction="never"
+            android:title="@string/sv_kafeen"/>
+    </group>
+
     <item
         android:id="@+id/menu_update"
         android:orderInCategory="100"
