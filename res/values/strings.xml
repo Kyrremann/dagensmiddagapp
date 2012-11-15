@@ -9,5 +9,7 @@
     <string name="menu_update">Update</string>
     <string name="menu_today">Only today</string>
     <string name="title_activity_restaurant">Where do you want to eat?</string>
+    <string name="restaurant_hours">Opening hours:</string>
+    <string name="food_title">Food of the day:</string>
 
 </resources>

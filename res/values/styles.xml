@@ -1,5 +1,11 @@
-<resources>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <style name="AppTheme" parent="android:Theme.Light" />
+    <style name="AppTheme" parent="@android:style/Theme.Holo.Light" >
+        <item name="android:actionBarStyle">@style/ActionTheme</item>
+        </style>
+
+    <style name="ActionTheme" parent="@android:style/Widget.Holo.ActionBar">
+        <item name="android:background">#F04B37</item>
+    </style>
 
 </resources>

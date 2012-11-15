@@ -4,7 +4,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Calendar;
@@ -14,27 +13,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.R.anim;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.Preference;
-import android.preference.PreferenceManager;
-import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentPagerAdapter;
-import android.support.v4.view.ViewPager;
 import android.util.Log;
-import android.view.ContextMenu;
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.ContextMenu.ContextMenuInfo;
-import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -49,15 +34,17 @@ public class RestaurantActivity extends FragmentActivity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_loading_dinner);
+		setContentView(R.layout.activity_restaurant);
 		settings = getSharedPreferences(getString(R.string.app_name),
 				MODE_PRIVATE);
-		getMeSomeDinner();
+		getMeSomeDinner(false);
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.activity_restaurant, menu);
+		menu.findItem(R.id.menu_today).setChecked(
+				settings.getBoolean("today", true));
 		return true;
 	}
 
@@ -89,7 +76,8 @@ public class RestaurantActivity extends FragmentActivity {
 			editor.commit();
 			break;
 		case R.id.menu_update:
-			getMeSomeDinner();
+			getMeSomeDinner(true);
+			populateFood(R.string.ifi);
 			break;
 		}
 
@@ -98,24 +86,36 @@ public class RestaurantActivity extends FragmentActivity {
 
 	private void populateFood(int id) {
 		Log.d("FOOD", "Getting food from " + getString(id));
-		setContentView(R.layout.activity_restaurant);
+		// if (findViewById(R.layout.activity_restaurant) == null)
+		// setContentView(R.layout.activity_restaurant);
 
 		JSONObject cafe;
 
 		try {
 			cafe = getCorrectCafe(id);
 			setTitle(cafe.getString("name"));
-			TextView textView = (TextView) findViewById(R.id.dinner_hours);
+			TextView textView;
+			// TextView textView = (TextView) findViewById(R.id.dinner_hours);
+			LinearLayout layout = (LinearLayout) findViewById(R.id.dinner_hours);
+			LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+					layout.getLayoutParams());
+			layoutParams.setMargins(10, 10, 10, 10);
 			if (settings.getBoolean("today", true)) {
+				textView = new TextView(this);
+				textView.setLayoutParams(layoutParams);
 				textView.setText(cafe.getJSONArray("open").getString(
 						getWeekday()));
+				layout.addView(textView);
 			} else {
 				String hours = "";
 				JSONArray array = cafe.getJSONArray("open");
 				for (int i = 0; i < array.length(); i++) {
-					hours += array.getString(i) + "\n";
+					textView = new TextView(this);
+					textView.setLayoutParams(layoutParams);
+					hours = array.getString(i);
+					textView.setText(hours);
+					layout.addView(textView);
 				}
-				textView.setText(hours);
 			}
 
 			textView = (TextView) findViewById(R.id.dinner_food);
@@ -123,7 +123,12 @@ public class RestaurantActivity extends FragmentActivity {
 				textView.setText(parseFood(cafe.getJSONArray("menu")
 						.getJSONObject(getWeekday())));
 			else {
-				textView.setText(cafe.getJSONArray("menu").toString());
+				String food = "";
+				JSONArray array = cafe.getJSONArray("menu");
+				for (int i = 0; i < array.length(); i++) {
+					food += parseFood(array.getJSONObject(i)) + "\n";
+				}
+				textView.setText(food);
 			}
 
 		} catch (JSONException e) {
@@ -134,6 +139,7 @@ public class RestaurantActivity extends FragmentActivity {
 	private String parseFood(JSONObject jsonObject) {
 		String food = "";
 		try {
+			@SuppressWarnings("unchecked")
 			Iterator<String> keys = jsonObject.keys();
 			while (keys.hasNext()) {
 				String key = keys.next();
@@ -162,22 +168,23 @@ public class RestaurantActivity extends FragmentActivity {
 	}
 
 	private int getWeekday() {
-		int weekday = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1;
+		int weekday = Calendar.getInstance().get(Calendar.DAY_OF_WEEK);
 		if (weekday == 0)
-			return 1;
+			return 6;
 		else
-			return weekday;
+			return weekday - 2;
 	}
 
-	private void getMeSomeDinner() {
+	private void getMeSomeDinner(final boolean download) {
 		new Thread(new Runnable() {
 
 			@Override
 			public void run() {
 				try {
-					dinner = getMeSomeJson();
+					dinner = getMeSomeJson(download);
 					Log.d("JSON", "Returned with JSON file");
-					populateFood(R.string.ifi);
+					if (!download)
+						populateFood(R.string.ifi);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -185,10 +192,13 @@ public class RestaurantActivity extends FragmentActivity {
 		}).start();
 	}
 
-	private JSONObject getMeSomeJson() throws IOException {
+	private JSONObject getMeSomeJson(boolean download) throws IOException {
 
 		byte[] buffer = "No data".getBytes();
 		try {
+			if (download)
+				throw new FileNotFoundException();
+			
 			inputStream = openFileInput(fileName);
 			Log.d("JSON", "Already have file: " + inputStream);
 			buffer = new byte[inputStream.available()];
