@@ -13,24 +13,52 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-public class RestaurantActivity extends FragmentActivity {
+/**
+ * In this project we are using just one class and one activity. From the API an
+ * activity is a singel, focused thing a user can do.
+ * 
+ * PS: You can hover over most of the variables in the code when you are using
+ * Eclipse too see the API information.
+ * 
+ * @see Activity
+ * 
+ * @author Kyrre Havik Eriksen
+ * @mail Kyrrehe@ifi.uio.no
+ * @version 0.9
+ */
+public class RestaurantActivity extends Activity {
 
-	private static InputStream inputStream;
+	/**
+	 * This is the name used to save the file to the phone.
+	 */
 	private static String fileName = "dinners.json";
 
+	/**
+	 * A SharedPreferences is you private storage on a phone. It's an "area"
+	 * where no other apps can see your stored data. {@link http
+	 * ://developer.android.com/guide/topics/data/data-storage.html}
+	 */
 	private SharedPreferences settings;
+
+	/**
+	 * This is the global json-object containing all the information about the
+	 * cafes, food, and menu.
+	 */
 	private JSONObject dinner;
 
+	/**
+	 * 
+	 */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -40,6 +68,12 @@ public class RestaurantActivity extends FragmentActivity {
 		getMeSomeDinner(false);
 	}
 
+	/**
+	 * In Android 4 they implemented an own xml to design your menu. So if you
+	 * go to res/menu/activity_restaurant.xml you can see how I want the menu to
+	 * look like, and what is a check-box. I've even grouped all the restaurant
+	 * together. {@link http://developer.android.com/guide/topics/ui/menus.html}
+	 */
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.activity_restaurant, menu);
@@ -48,6 +82,11 @@ public class RestaurantActivity extends FragmentActivity {
 		return true;
 	}
 
+	/**
+	 * Used to handle user interaction with the menu. When a user click on one
+	 * of the menu items, the information is sent to this menu, and you can get
+	 * the specific menu item from the variable item
+	 */
 	@Override
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
 		int id = item.getItemId();
@@ -65,6 +104,14 @@ public class RestaurantActivity extends FragmentActivity {
 			populateFood(R.string.sv_kafeen);
 			break;
 		case R.id.menu_today:
+
+			/**
+			 * To write to our local storage using SharedPreferences we need to
+			 * create an Editor variable. With the editor we can use normal put
+			 * commands (similar to HashMaps). Just remember to call .commit()
+			 * when your done. Or else the information won't be written to the
+			 * phone.
+			 */
 			SharedPreferences.Editor editor = settings.edit();
 			if (item.isChecked()) {
 				item.setChecked(false);
@@ -84,10 +131,15 @@ public class RestaurantActivity extends FragmentActivity {
 		return true;
 	}
 
+	/**
+	 * Used to populate the TextView's in our layout with the food and opening
+	 * hours.
+	 * 
+	 * @param id
+	 *            id of the String representation of the cafe you want to see.
+	 */
 	private void populateFood(int id) {
 		Log.d("FOOD", "Getting food from " + getString(id));
-		// if (findViewById(R.layout.activity_restaurant) == null)
-		// setContentView(R.layout.activity_restaurant);
 
 		JSONObject cafe;
 
@@ -95,11 +147,12 @@ public class RestaurantActivity extends FragmentActivity {
 			cafe = getCorrectCafe(id);
 			setTitle(cafe.getString("name"));
 			TextView textView;
-			// TextView textView = (TextView) findViewById(R.id.dinner_hours);
+
 			LinearLayout layout = (LinearLayout) findViewById(R.id.dinner_hours);
 			LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
 					layout.getLayoutParams());
 			layoutParams.setMargins(10, 10, 10, 10);
+
 			if (settings.getBoolean("today", true)) {
 				textView = new TextView(this);
 				textView.setLayoutParams(layoutParams);
@@ -136,6 +189,15 @@ public class RestaurantActivity extends FragmentActivity {
 		}
 	}
 
+	/**
+	 * Since JSON is not always that readable, we need to parse the information
+	 * by our self. This method takes an JSON object and get the food and return
+	 * it as a String.
+	 * 
+	 * @param jsonObject
+	 *            The menu you want to parse
+	 * @return the food parsed from the JSON object
+	 */
 	private String parseFood(JSONObject jsonObject) {
 		String food = "";
 		try {
@@ -156,6 +218,14 @@ public class RestaurantActivity extends FragmentActivity {
 		return food;
 	}
 
+	/**
+	 * Used to get the correct cafe from the global dinner object.
+	 * 
+	 * @param resId
+	 *            the String resource for the cafe you want
+	 * @return the json object of the correct cafe
+	 * @throws JSONException
+	 */
 	private JSONObject getCorrectCafe(int resId) throws JSONException {
 		JSONArray cafes = dinner.getJSONArray("cafes");
 		String name = getString(resId);
@@ -167,6 +237,12 @@ public class RestaurantActivity extends FragmentActivity {
 		return null;
 	}
 
+	/**
+	 * Since Java's built in Calendar starts on Sundays I've made an own method
+	 * that start on a Monday
+	 * 
+	 * @return int the correct weekday
+	 */
 	private int getWeekday() {
 		int weekday = Calendar.getInstance().get(Calendar.DAY_OF_WEEK);
 		if (weekday == 0)
@@ -175,6 +251,14 @@ public class RestaurantActivity extends FragmentActivity {
 			return weekday - 2;
 	}
 
+	/**
+	 * Starts the Thread needed to handle network communication It's important
+	 * to remember that when you need to use internet, you need to set the
+	 * permission in the AndroidManifest.xml file.
+	 * 
+	 * @param download
+	 *            true if you want to force downloading of a new file
+	 */
 	private void getMeSomeDinner(final boolean download) {
 		new Thread(new Runnable() {
 
@@ -192,13 +276,23 @@ public class RestaurantActivity extends FragmentActivity {
 		}).start();
 	}
 
+	/**
+	 * Used to connect to the internet and download a new JSON file, or if you
+	 * have the file, it will load it from the phone
+	 * 
+	 * @param download
+	 *            true to download a new file, even if you already have a file
+	 * @return The JSON object
+	 * @throws IOException
+	 */
 	private JSONObject getMeSomeJson(boolean download) throws IOException {
 
 		byte[] buffer = "No data".getBytes();
+		InputStream inputStream;
 		try {
 			if (download)
 				throw new FileNotFoundException();
-			
+
 			inputStream = openFileInput(fileName);
 			Log.d("JSON", "Already have file: " + inputStream);
 			buffer = new byte[inputStream.available()];
@@ -217,11 +311,10 @@ public class RestaurantActivity extends FragmentActivity {
 			fileOutputStream.write(buffer);
 			Log.d("JSON", "Saved file to " + fileOutputStream);
 			fileOutputStream.close();
+			inputStream.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-		inputStream.close();
 
 		try {
 			return new JSONObject(new String(buffer));
@@ -230,5 +323,4 @@ public class RestaurantActivity extends FragmentActivity {
 			return null;
 		}
 	}
-
 }
